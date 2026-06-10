@@ -58,11 +58,19 @@ ensure_symlink() {
         fi
         rm -f "$target_path"
     elif [[ -d "$target_path" ]]; then
-        backup_dir "$target_path"
-        rm -rf "$target_path"
+        if diff -qr "$source_path" "$target_path" >/dev/null 2>&1; then
+            rm -rf "$target_path"
+        else
+            backup_dir "$target_path"
+            rm -rf "$target_path"
+        fi
     elif [[ -f "$target_path" ]]; then
-        backup_file "$target_path"
-        rm -f "$target_path"
+        if cmp -s "$source_path" "$target_path"; then
+            rm -f "$target_path"
+        else
+            backup_file "$target_path"
+            rm -f "$target_path"
+        fi
     fi
 
     ln -s "$source_path" "$target_path"
@@ -378,6 +386,7 @@ config_codex() {
 
     # Link all skills from shared/skills
     link_all_skills "$HOME/.codex/skills" "Codex"
+    link_skills_from_dir "$HOME/.agents/skills" "$HOME/.codex/skills" "Codex"
 
     if [[ -d "$HOME/.agents/skills/gstack" ]]; then
         ensure_symlink "$HOME/.agents/skills/gstack" "$HOME/.codex/skills/gstack" "Codex skill: gstack"

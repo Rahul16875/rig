@@ -147,8 +147,12 @@ skills:
 		if [[ -L "$$target_path" ]]; then \
 			rm -f "$$target_path"; \
 		elif [[ -e "$$target_path" ]]; then \
-			echo "  Skipping existing non-symlink: $$target_path"; \
-			continue; \
+			if diff -qr "$$skill_path" "$$target_path" >/dev/null 2>&1; then \
+				rm -rf "$$target_path"; \
+			else \
+				echo "  Skipping existing non-symlink: $$target_path"; \
+				continue; \
+			fi; \
 		fi; \
 		ln -s "$$skill_path" "$$target_path"; \
 		echo "✓ Skill linked: $$skill_name"; \
