@@ -7,19 +7,19 @@
 
   # --- Typography ---
   font-family = JetBrainsMonoNerdFont
-  font-size = 14
+  font-size = 11
   font-thicken = true
   adjust-cell-height = 2
 
   # --- Theme and Colors ---
 # Catppuccin with automatic light/dark switching
   #theme = light:Catppuccin Latte,dark:Catppuccin Mocha
-theme = Catppuccin Latte
+#theme = Catppuccin Latte
 # --- Window and Appearance ---
- # unfocused-split-opacity = 0.25
-#  background-opacity = 0.9
+  unfocused-split-opacity = 0.25
+ # background-opacity = 0.9
  # background-blur-radius = 20
-  macos-titlebar-style = transparent
+ macos-titlebar-style = transparent
   window-padding-x = 10
   window-padding-y = 8
   window-save-state = always

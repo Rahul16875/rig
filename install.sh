@@ -465,6 +465,62 @@ install_pi() {
     fi
 }
 
+is_local_pi_extension() {
+    case "$1" in
+        /*|./*|../*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+install_pi_extensions() {
+    local pi_extensions=(
+        "npm:@ollama/pi-web-search"
+        "git:github.com/championswimmer/pi-context-usage"
+        "git:git@github.com:nileshteji/pi-ralph-lingum-loop.git"
+        "git:https://github.com/nileshteji/pi-repo-spend.git"
+        "git:https://github.com/badlogic/pi-diff-review"
+    )
+    local legacy_pi_extensions=(
+        "$HOME/Developer/pi-ralph-lingum-loop"
+        "../../aibot/pi-repo-spend"
+    )
+    local extension_source
+    local extension_path
+    local legacy_source
+
+    echo "Installing Pi extensions..."
+    mkdir -p "$HOME/.pi/agent"
+
+    for legacy_source in "${legacy_pi_extensions[@]}"; do
+        if pi list 2>/dev/null | grep -Fxq "  $legacy_source"; then
+            (cd "$HOME/.pi/agent" && pi remove "$legacy_source") || true
+            echo "✓ Removed legacy local Pi extension entry: $legacy_source"
+        fi
+    done
+
+    for extension_source in "${pi_extensions[@]}"; do
+        if pi list 2>/dev/null | grep -Fxq "  $extension_source"; then
+            echo "✓ Pi extension already installed: $extension_source"
+            continue
+        fi
+
+        if is_local_pi_extension "$extension_source"; then
+            extension_path="$extension_source"
+            if [[ "$extension_path" != /* ]]; then
+                extension_path="$HOME/.pi/agent/$extension_path"
+            fi
+
+            if [[ ! -e "$extension_path" ]]; then
+                echo "  Skipping missing local Pi extension: $extension_source"
+                continue
+            fi
+        fi
+
+        (cd "$HOME/.pi/agent" && pi install "$extension_source")
+        echo "✓ Pi extension installed: $extension_source"
+    done
+}
+
 config_pi() {
     echo "Setting up Pi config..."
     mkdir -p "$HOME/.pi/agent"
@@ -593,11 +649,18 @@ config_terminal() {
         GHOSTTY_CONFIG_DIR="$HOME/.config/ghostty"
     fi
 
+    GHOSTTY_CONFIG_TARGET="$GHOSTTY_CONFIG_DIR/config.ghostty"
+    GHOSTTY_LEGACY_CONFIG_TARGET="$GHOSTTY_CONFIG_DIR/config"
+
     mkdir -p "$GHOSTTY_CONFIG_DIR"
-    backup_file "$GHOSTTY_CONFIG_DIR/config"
-    rm -f "$GHOSTTY_CONFIG_DIR/config"
-    ln -s "$GHOSTTY_CONFIG_SRC" "$GHOSTTY_CONFIG_DIR/config"
-    echo "✓ Ghostty config installed to $GHOSTTY_CONFIG_DIR/config"
+    ensure_symlink "$GHOSTTY_CONFIG_SRC" "$GHOSTTY_CONFIG_TARGET" "Ghostty config"
+
+    if [[ -L "$GHOSTTY_LEGACY_CONFIG_TARGET" ]]; then
+        rm -f "$GHOSTTY_LEGACY_CONFIG_TARGET"
+        echo "✓ Removed legacy Ghostty config symlink at $GHOSTTY_LEGACY_CONFIG_TARGET"
+    fi
+
+    echo "✓ Ghostty config installed to $GHOSTTY_CONFIG_TARGET"
 }
 
 install_google_cloud() {
@@ -872,7 +935,7 @@ run_module() {
         6) install_codex; config_codex ;;
         7) install_opencode; config_opencode ;;
         8) install_bun; install_claude; config_claude ;;
-        9) install_pi; config_pi ;;
+        9) install_pi; install_pi_extensions; config_pi ;;
         10) install_cursor ;;
         11) install_terminal; config_terminal ;;
         12) install_google_cloud; config_google_cloud ;;
