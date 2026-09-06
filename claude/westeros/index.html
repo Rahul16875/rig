@@ -254,7 +254,7 @@ class Rider{
     this.horse.scale.x=this.facing;this.rider.scale.x=this.facing;this.cape.scale.x=1;
     // glow + status
     this.glow.alpha+=(((this.alive&&this.state==='working')?0.35:0)-this.glow.alpha)*0.05;
-    this.status.text=!this.alive?'':this.state==='working'?'AT WAR':this.state==='awaiting'?'SUMMONED':this.state==='done'?'VICTORIOUS':'';
+    this.status.text=!this.alive?'':this.state==='working'?'AT WAR':this.state==='awaiting'?'SUMMONED':this.state==='done'?'STANDS READY':'';
     this.status.style.fill=this.state==='done'?0x8fd19a:0xf0b35a;
     if(this.alive&&this.state==='working'&&Math.random()<0.35)emit('dust',this.x-this.facing*60+Math.random()*30,this.y+2);
   }
@@ -290,17 +290,16 @@ const missions=[];let mission=null;let mstate='post',mtimer=0;
 function enqueue(m){missions.push(m);}
 function stepJon(dt,t){
   if(!jon)return;
-  if(mstate==='post'){jon.speed=0;if(missions.length){mission=missions.shift();mstate='ride';sound.raven();focusOn(mission.target);}else{if(Math.abs(jon.x-jon.tx)>2)moveTo(jon,jon.tx,jon.ty,dt,.45);else jon.facing=1;}}
-  else if(mstate==='ride'){const a=mission.target;const gx=a.x-170,gy=a.y+10;if(moveTo(jon,gx,gy,dt,.62)){mstate='act';mtimer=0;jon.facing=1;jon.speed=0;}}
+  if(mstate==='post'){jon.speed=0;if(missions.length){mission=missions.shift();const a=mission.target;if(!a||(!a.alive&&mission.kind!=='execute')){return;}if(mission.kind==='deliver'&&(a.tasks||[]).some(x=>x.id===mission.task.id&&x.status==='completed')){mission={kind:'collect',target:a};}mstate='ride';sound.raven();focusOn(a);}else{if(Math.abs(jon.x-jon.tx)>2)moveTo(jon,jon.tx,jon.ty,dt,.45);else jon.facing=1;}}
+  else if(mstate==='ride'){const a=mission.target;const gx=a.x-170,gy=a.y+10;if(moveTo(jon,gx,gy,dt,1.0)){mstate='act';mtimer=0;jon.facing=1;jon.speed=0;}}
   else if(mstate==='act'){mtimer+=dt;const m=mission,a=m.target;
     if(m.kind==='deliver'){if(!m.started){m.started=true;jon.armLocked=true;gsap.to(jon.arm,{rotation:-0.5,duration:.4,ease:'power2.out'});flyScroll(jon,a,'📜');chronicle('📜 <b>Jon Snow</b> hands <b style="color:'+hex(a.c.color)+'">'+esc(a.name)+'</b> the quest: <i>'+esc(stripName(m.task.subject,a.name))+'</i>');tick('Jon Snow hands '+esc(a.name)+' a quest');}
-      if(mtimer>1100){a.state='working';a.task=m.task;a.pendingTask=null;a.patrolMove=true;a.setBubble(stripName(m.task.subject,a.name),true);gsap.to(jon.arm,{rotation:-2.3,duration:.5,onComplete:()=>jon.armLocked=false});mstate='return';sound.drum(.3);}}
-    else if(m.kind==='collect'){if(!m.started){m.started=true;flyScroll(a,jon,'🏅');chronicle('🏅 <b>Jon Snow</b> takes the finished work from <b style="color:'+hex(a.c.color)+'">'+esc(a.name)+'</b>');a.setBubble(null);a.patrolMove=false;}
-      if(mtimer>1300&&!m.struck){m.struck=true;strike(a,m.reason);}
-      if(mtimer>3600){mstate='return';}}
-    else if(m.kind==='execute'){if(!m.started){m.started=true;strike(a,m.reason);}if(mtimer>2400)mstate='return';}
+      if(mtimer>900){a.state='working';a.task=m.task;a.pendingTask=null;a.patrolMove=true;a.setBubble(stripName(m.task.subject,a.name),true);gsap.to(jon.arm,{rotation:-2.3,duration:.5,onComplete:()=>jon.armLocked=false});mstate=missions.length?'post':'return';sound.drum(.3);}}
+    else if(m.kind==='collect'){if(!m.started){m.started=true;flyScroll(a,jon,'🏅');chronicle('🏅 <b>Jon Snow</b> takes the finished work from <b style="color:'+hex(a.c.color)+'">'+esc(a.name)+'</b>. '+esc(a.name)+' stands ready.');tick(esc(a.name)+' delivers the work to Jon Snow');a.setBubble(null);a.patrolMove=false;a.armLocked=true;gsap.to(a.arm,{rotation:-2.9,duration:.4,yoyo:true,repeat:1,onComplete:()=>a.armLocked=false});sound.drum(.4);}
+      if(mtimer>1200){mstate=missions.length?'post':'return';}}
+    else if(m.kind==='execute'){if(!m.started){m.started=true;strike(a,m.reason);}if(mtimer>2400){mstate=missions.length?'post':'return';}}
   }
-  else if(mstate==='return'){if(moveTo(jon,jon.tx,jon.ty,dt,.5)){mstate='post';mission=null;jon.facing=1;wide();}}
+  else if(mstate==='return'){if(missions.length){mstate='post';return;}if(moveTo(jon,jon.tx,jon.ty,dt,.9)){mstate='post';mission=null;jon.facing=1;wide();}}
 }
 function focusOn(a){if(!a)return;focus(a.x-70,a.y-90,1.5,1.4);}
 function flyScroll(from,to,em){const t=new PIXI.Text({text:em,style:{fontSize:34}});t.anchor.set(.5);t.x=from.x;t.y=from.y-150;layers.actors.addChild(t);t.zIndex=99999;const o={p:0};gsap.to(o,{p:1,duration:1,ease:'power1.inOut',onUpdate:()=>{t.x=from.x+(to.x-from.x)*o.p;t.y=from.y-150+(to.y-from.y)*o.p-Math.sin(o.p*Math.PI)*120;t.rotation=o.p*6;},onComplete:()=>t.destroy()});}
@@ -347,20 +346,20 @@ function applyState(s){
     if(!a.alive)continue;
     const active=mine.find(t=>t.status==='in_progress')||mine.find(t=>t.status==='pending');
     const curId=a.task?a.task.id:(a.pendingTask?a.pendingTask.id:null);
-    if(active&&active.id!==curId){a.pendingTask=active;a.state='awaiting';a.setBubble(stripName(active.subject,a.name),false);enqueue({kind:'deliver',target:a,task:active});chronicle('🦅 A raven: <b style="color:'+hex(a.c.color)+'">'+esc(a.name)+'</b> is summoned for <i>'+esc(stripName(active.subject,a.name))+'</i>');tick('A raven summons '+esc(a.name));}
+    if(active&&active.id!==curId){a.pendingTask=active;a.state='awaiting';a.task=null;a.setBubble(stripName(active.subject,a.name),false);enqueue({kind:'deliver',target:a,task:active});chronicle('🦅 A raven: <b style="color:'+hex(a.c.color)+'">'+esc(a.name)+'</b> is summoned for <i>'+esc(stripName(active.subject,a.name))+'</i>');tick('A raven summons '+esc(a.name));}
     const justDone=mine.filter(t=>t.status==='completed'&&!seenTaskDone.has(t.id));
-    justDone.forEach(t=>{seenTaskDone.add(t.id);if(Date.now()-(t._mtime||0)<60000||s.demo){a.state='done';if(!a.hasPending&&!a.collectQueued){a.collectQueued=true;enqueue({kind:'collect',target:a,reason:'Quest fulfilled. Valar morghulis.'});chronicle('✅ Quest complete: <i>'+esc(stripName(t.subject,a.name))+'</i> by <b>'+esc(a.name)+'</b>');}}});
-    if(!names.has(a.name)&&Date.now()-a.born>4000&&members.length>0&&!a.collectQueued&&!s.demo){a.collectQueued=true;enqueue({kind:a.doneCount>0?'collect':'execute',target:a,reason:a.doneCount>0?'Quest fulfilled. Valar morghulis.':'Dismissed by the King'});}
+    justDone.forEach(t=>{seenTaskDone.add(t.id);if(Date.now()-(t._mtime||0)<60000||s.demo){if(!a.hasPending){a.state='done';enqueue({kind:'collect',target:a});}chronicle('✅ Quest complete: <i>'+esc(stripName(t.subject,a.name))+'</i> by <b>'+esc(a.name)+'</b>');}});
+    if(!names.has(a.name)&&Date.now()-a.born>4000&&!a.killQueued&&(members.length>0||s.demo)){a.killQueued=true;enqueue({kind:'execute',target:a,reason:a.doneCount>0?'The battle is won. Valar morghulis.':'Dismissed by the King'});}
   }
   (s.events||[]).forEach(e=>{if(e.ts<=lastEventTs)return;lastEventTs=Math.max(lastEventTs,e.ts);if(Date.now()-e.ts>20000)return;const p=e.payload||{};
     if(p.hook_event_name==='TaskCreated')chronicle('📜 Quest decreed: <i>'+esc(p.task_title||'')+'</i>');
-    if(p.hook_event_name==='SubagentStop'&&p.agent_type&&riders.has(p.agent_type)){const a=riders.get(p.agent_type);if(a.alive&&!a.collectQueued&&!(s.members||[]).some(m=>m.name===a.name)){a.collectQueued=true;a.state='done';enqueue({kind:'collect',target:a,reason:'Quest fulfilled. Valar morghulis.'});}}
+    if(p.hook_event_name==='SubagentStop'&&p.agent_type&&riders.has(p.agent_type)){const a=riders.get(p.agent_type);if(a.alive&&!a.killQueued&&!(s.members||[]).some(m=>m.name===a.name)){a.killQueued=true;enqueue({kind:'execute',target:a,reason:a.doneCount>0?'The battle is won. Valar morghulis.':'Dismissed by the King'});}}
   });
   renderTasks(tasks);renderCouncil();updateStats();
 }
 function updateStats(){const tasks=lastState.tasks||[];document.getElementById('s-alive').textContent=[...riders.values()].filter(a=>a.alive).length;document.getElementById('s-work').textContent=[...riders.values()].filter(a=>a.alive&&a.state==='working').length;document.getElementById('s-done').textContent=tasks.filter(t=>t.status==='completed').length;document.getElementById('s-dead').textContent=fallen.length;}
 function renderTasks(tasks){document.getElementById('tasks').innerHTML=tasks.length?tasks.map(t=>'<div class="task '+(t.status==='completed'?'done':'')+'"><span class="st">'+(t.status==='completed'?'✓':t.status==='in_progress'?'⚔':'○')+'</span><div><div>'+esc(t.subject)+'</div>'+(t.owner?'<div class="who">'+esc(t.owner)+'</div>':'')+'</div></div>').join(''):'<div class="task" style="opacity:.55;font-style:italic">No quests decreed yet.</div>';}
-function statusOf(a){if(!a.alive)return ['dead','FALLEN'];if(a.state==='working')return ['work','AT WAR'];if(a.state==='awaiting')return ['wait','SUMMONED'];if(a.state==='done')return ['done','VICTORIOUS'];return ['wait','WAITING'];}
+function statusOf(a){if(!a.alive)return ['dead','FALLEN'];if(a.state==='working')return ['work','AT WAR'];if(a.state==='awaiting')return ['wait','SUMMONED'];if(a.state==='done')return ['done','STANDS READY'];return ['wait','WAITING'];}
 function renderCouncil(){const rows=[];
   if(jon)rows.push(member(jon.c,jon.name,'team-lead',mstate==='post'?(missions.length?'Preparing the next order':'Watching the field from the command post'):mstate==='ride'?'Riding to '+(mission&&mission.target?mission.target.name:'the field'):mstate==='act'?(mission.kind==='deliver'?'Handing over a quest':'Judging the work'):'Returning to the post',['lead','COMMANDER'],true));
   const list=[...riders.values()].sort((a,b)=>(a.alive===b.alive?0:a.alive?-1:1));
@@ -429,11 +428,16 @@ function runDemo(){
   let t=800;const at=(ms,fn)=>setTimeout(fn,ms);
   names.forEach((n,i)=>{at(t+i*1500,()=>{members.push({name:n[0],agentType:n[1]});emitS();});});
   t+=names.length*1500+1500;
-  const cycle=(i)=>{const n=names[i];if(!n)return;const tid=String(id++);
-    at(t,()=>{tasks.push({id:tid,subject:n[0]+': '+n[2],status:'in_progress',owner:n[0]});emitS();});
-    at(t+11000,()=>{const tk=tasks.find(x=>x.id===tid);tk.status='completed';emitS();});
-    t+=15500;cycle(i+1);};
-  cycle(0);document.getElementById('council-sub').textContent='staged demo battle';
+  const quest=(who,subject,dur)=>{const tid=String(id++);at(t,()=>{tasks.push({id:tid,subject:who+': '+subject,status:'in_progress',owner:who});emitS();});at(t+dur,()=>{tasks.find(x=>x.id===tid).status='completed';emitS();});t+=dur+7000;};
+  quest('Daenerys','scout the answer-engine chat feature',9000);
+  quest('Tyrion','plan the transcript refactor',9000);
+  at(t,()=>chronicle('⚖ <b>Tywin</b> rejects the plan: the transcript rules belong in Reactor, not the ViewModel'));t+=1500;
+  quest('Tyrion','revise the plan after Tywin\'s review',7000);
+  quest('Arya','implement the plan',9000);
+  quest('Bran','build, test and validate',8000);
+  at(t,()=>{chronicle('🏆 <b>Bran</b> reports: build green, tests pass. The battle is won.');tick('The battle is won. Jon Snow rides the line.');});
+  names.forEach((n,i)=>{at(t+1500+i*900,()=>{const k=members.findIndex(m=>m.name===n[0]);if(k>=0)members.splice(k,1);emitS();});});
+  document.getElementById('council-sub').textContent='staged demo battle';
 }
 (async()=>{
   await app.init({resizeTo:window,background:0x07060a,antialias:true,resolution:Math.min(2,devicePixelRatio||1),autoDensity:true});
