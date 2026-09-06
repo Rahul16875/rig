@@ -409,7 +409,7 @@ const sound={ctx:null,on:true,armed:false,hoofT:0,
 // ------------------------ HUD wiring ------------------------
 const dl=document.getElementById('dl'),dr=document.getElementById('dr');
 function toggle(d,force){d.classList.toggle('open',force);document.getElementById(d===dl?'b-council':'b-quests').classList.toggle('on',d.classList.contains('open'));}
-document.getElementById('b-council').onclick=()=>toggle(dl);document.getElementById('b-quests').onclick=()=>toggle(dr);document.getElementById('b-sound').onclick=(e)=>{e.stopPropagation();sound.toggle();};addEventListener('pointerdown',()=>sound.arm(),{passive:true});
+document.getElementById('b-council').onclick=()=>toggle(dl);document.getElementById('b-quests').onclick=()=>toggle(dr);document.getElementById('b-sound').onclick=(e)=>{e.stopPropagation();sound.toggle();};addEventListener('pointerdown',()=>sound.arm(),{passive:true});sound.label();
 document.getElementById('edgeL').onmouseenter=()=>toggle(dl,true);document.getElementById('edgeR').onmouseenter=()=>toggle(dr,true);
 dl.onmouseleave=()=>toggle(dl,false);dr.onmouseleave=()=>toggle(dr,false);
 addEventListener('keydown',e=>{if(e.key==='c'||e.key==='C')toggle(dl);if(e.key==='q'||e.key==='Q')toggle(dr);if(e.key==='m'||e.key==='M')sound.toggle();else sound.arm();if(e.key==='Escape'){toggle(dl,false);toggle(dr,false);}});
