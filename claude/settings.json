@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/westeros/hook.sh"
+            "command": "$HOME/.claude/skills/westeros/dashboard/hook.sh"
           }
         ]
       }
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/westeros/hook.sh"
+            "command": "$HOME/.claude/skills/westeros/dashboard/hook.sh"
           }
         ]
       }
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/westeros/hook.sh"
+            "command": "$HOME/.claude/skills/westeros/dashboard/hook.sh"
           }
         ]
       }
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/westeros/hook.sh"
+            "command": "$HOME/.claude/skills/westeros/dashboard/hook.sh"
           }
         ]
       }
@@ -69,7 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$HOME/.claude/westeros/hook.sh"
+            "command": "$HOME/.claude/skills/westeros/dashboard/hook.sh"
           }
         ]
       }
